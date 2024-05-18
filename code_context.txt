@@ -1,0 +1,2302 @@
+// File: route/route.manager.js
+const userRoute = require('./v1/user.route');
+const authRoute = require('./v1/auth.route');
+const helloRoute = require('./v1/hello.route');
+const botRoute = require('./v1/bot.route');
+const transactionRoute = require('./v1/transaction.route');
+
+const routeManager = (app) => {
+
+    // API V1 Routes
+    app.use('/v1/', helloRoute);
+    app.use('/v1/auth', authRoute);
+    app.use('/v1/user', userRoute);
+    app.use('/v1/bot', botRoute);
+    app.use('/v1/transaction', transactionRoute);
+
+}
+
+module.exports = routeManager;
+// File: route/v1/auth.route.js
+const express = require('express');
+const router = express.Router();
+const authController = require('../../controller/auth.controller.js');
+const validate = require('../../middleware/validate');
+const authValidation = require('../../validations/auth.validation');
+const auth = require('../../middleware/auth');
+
+
+router.post('/login', validate(authValidation.login), authController.login);
+router.post('/login-wallet', validate(authValidation.loginWallet), authController.loginWallet);
+router.post('/register', validate(authValidation.register), authController.register);
+router.post('/register-wallet', validate(authValidation.registerWallet), authController.registerWallet);
+router.post('/logout', validate(authValidation.logout), authController.logout);
+router.post('/refresh-tokens', validate(authValidation.refreshTokens), authController.refreshTokens);
+router.post('/forgot-password', validate(authValidation.forgotPassword), authController.forgotPassword);
+router.post('/reset-password', validate(authValidation.resetPassword), authController.resetPassword);
+router.post('/send-verification-email', auth(), authController.sendVerificationEmail);
+router.post('/verify-email', validate(authValidation.verifyEmail), authController.verifyEmail);
+
+
+module.exports = router;
+
+
+
+/**
+ * @swagger
+ * tags:
+ *   name: Auth
+ *   description: Authentication
+ */
+
+/**
+ * @swagger
+ * /auth/register:
+ *   post:
+ *     summary: Register as user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - password
+ *             properties:
+ *               firstname:
+ *                 type: string
+ *               lastname:
+ *                type: string
+ *               role:
+ *                type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: must be unique
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 8
+ *                 description: At least one number and one letter
+ *             example:
+ *               name: fake name
+ *               email: fake@example.com
+ *               password: password1
+ *
+ */
+
+/**
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: Login
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 format: password
+ *             example:
+ *               email: fake@example.com
+ *               password: password1
+ *
+ */
+
+/**
+ * @swagger
+ * /auth/logout:
+ *   post:
+ *     summary: Logout
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *             example:
+ *               refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1ZWJhYzUzNDk1NGI1NDEzOTgwNmMxMTIiLCJpYXQiOjE1ODkyOTg0ODQsImV4cCI6MTU4OTMwMDI4NH0.m1U63blB0MLej_WfB7yC2FTMnCziif9X8yzwDEfJXAg
+ *
+ */
+
+/**
+ * @swagger
+ * /auth/refresh-tokens:
+ *   post:
+ *     summary: Refresh auth tokens
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *             example:
+ *               refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1ZWJhYzUzNDk1NGI1NDEzOTgwNmMxMTIiLCJpYXQiOjE1ODkyOTg0ODQsImV4cCI6MTU4OTMwMDI4NH0.m1U63blB0MLej_WfB7yC2FTMnCziif9X8yzwDEfJXAg
+ *
+ */
+
+/**
+ * @swagger
+ * /auth/forgot-password:
+ *   post:
+ *     summary: Forgot password
+ *     description: An email will be sent to reset password.
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *             example:
+ *               email: fake@example.com
+ *
+ */
+
+/**
+ * @swagger
+ * /auth/reset-password:
+ *   post:
+ *     summary: Reset password
+ *     tags: [Auth]
+ *     parameters:
+ *       - in: query
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The reset password token
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - password
+ *             properties:
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 8
+ *                 description: At least one number and one letter
+ *             example:
+ *               password: password1
+ *
+ */
+
+/**
+ * @swagger
+ * /auth/send-verification-email:
+ *   post:
+ *     summary: Send verification email
+ *     description: An email will be sent to verify email.
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *
+ */
+
+/**
+ * @swagger
+ * /auth/verify-email:
+ *   post:
+ *     summary: verify email
+ *     tags: [Auth]
+ *     parameters:
+ *       - in: query
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The verify email token
+ *
+ */
+// File: route/v1/bot.route.js
+const express = require('express');
+const router = express.Router();
+
+const botController = require('../../controller/bot.controller.js');
+
+/**
+ * @openapi
+ * /:
+ *  get:
+ *     tags:
+ *     - hello
+ *     description: API is running
+ *     responses:
+ *       200:
+ *         description: API is running
+ */
+router.get('/all', botController.getAllBots);
+router.get('/:id', botController.getBotById);
+router.post('/', botController.createBot);
+router.put('/:id', botController.updateBotById);
+router.delete('/:id', botController.deleteBotById);
+
+module.exports = router;
+// File: route/v1/hello.route.js
+const express = require('express');
+const router = express.Router();
+
+const helloController = require('../../controller/hello.controller.js');
+
+/**
+ * @openapi
+ * /:
+ *  get:
+ *     tags:
+ *     - hello
+ *     description: API is running
+ *     responses:
+ *       200:
+ *         description: API is running
+ */
+router.get('/',  helloController.hello);
+
+module.exports = router;
+// File: route/v1/transaction.route.js
+const express = require('express');
+const router = express.Router();
+
+const transactionController = require('../../controller/transaction.controller.js');
+
+/**
+ * @openapi
+ * /:
+ *  get:
+ *     tags:
+ *     - hello
+ *     description: API is running
+ *     responses:
+ *       200:
+ *         description: API is running
+ */
+router.get('/all', transactionController.getAllTransactions);
+router.get('/user/:id', transactionController.getTransactionsByUserId);
+router.get('/:id', transactionController.getTransactionById);
+router.post('/', transactionController.createTransaction);
+router.put('/:id', transactionController.updateTransactionById);
+router.delete('/:id', transactionController.deleteTransactionById);
+
+module.exports = router;
+// File: route/v1/user.route.js
+const express = require('express');
+const router = express.Router();
+const userController = require('../../controller/user.controller.js');
+const auth = require("../../middleware/auth");
+const validate = require('../../middleware/validate');
+const userValidation = require('../../validations/user.validation');
+
+router
+    .route('/')
+    .post(auth('manageUsers'), validate(userValidation.createUser), userController.signUp)
+    .get(auth('getUsers'), validate(userValidation.getUsers), userController.getAllUsers);
+
+
+router
+    .route('/:id')
+    .get(auth('getUsers'), validate(userValidation.getUser), userController.getUserById)
+    .patch(auth('manageUsers'), validate(userValidation.updateUser), userController.updateUser)
+    .delete(auth('manageUsers'), validate(userValidation.deleteUser), userController.deleteUser);
+
+router.put('/setting/:id', userController.updateSetting);
+router.get('/setting/:id', userController.getUserSetting);
+
+module.exports = router;
+
+
+
+
+/**
+ * @swagger
+ * tags:
+ *   name: Users
+ *   description: User management and retrieval
+ */
+
+/**
+ * @swagger
+ * /users:
+ *   post:
+ *     summary: Create a user
+ *     description: Only admins can create other users.
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - password
+ *               - role
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: must be unique
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 8
+ *                 description: At least one number and one letter
+ *               role:
+ *                  type: string
+ *                  enum: [user, admin]
+ *             example:
+ *               name: fake name
+ *               email: fake@example.com
+ *               password: password1
+ *               role: user
+ *
+ *   get:
+ *     summary: Get all users
+ *     description: Only admins can retrieve all users.
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: name
+ *         schema:
+ *           type: string
+ *         description: User name
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           type: string
+ *         description: User role
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *         description: sort by query in the form of field:desc/asc (ex. name:asc)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *         default: 10
+ *         description: Maximum number of users
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number
+ *
+ */
+
+/**
+ * @swagger
+ * /users/{id}:
+ *   get:
+ *     summary: Get a user
+ *     description: Logged in users can fetch only their own user information. Only admins can fetch other users.
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User id
+ *
+ *   patch:
+ *     summary: Update a user
+ *     description: Logged in users can only update their own information. Only admins can update other users.
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User id
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: must be unique
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 8
+ *                 description: At least one number and one letter
+ *             example:
+ *               name: fake name
+ *               email: fake@example.com
+ *               password: password1
+ *
+ *
+ *   delete:
+ *     summary: Delete a user
+ *     description: Logged in users can delete only themselves. Only admins can delete other users.
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User id
+ *
+ */
+
+// File: controller/auth.controller.js
+const authService = require("../service/auth.service");
+const tokenService = require("../service/token.service");
+const catchAsync = require("../utils/catchAsync");
+const httpStatus = require("http-status");
+const userServices = require("../service/user.service");
+//const emailService = require("../service/email.service");
+
+
+const login = catchAsync(async (req, res) => {
+    const {email, password} = req.body;
+    const user = await authService.loginUserWithEmailAndPassword(email, password);
+    if (!user) {
+        res.status(httpStatus.UNAUTHORIZED).send({
+            "message": "Invalid credentials",
+        });
+        return;
+    }
+    const tokens = await tokenService.generateAuthTokens(user);
+    res.send({user, tokens});
+});
+
+const loginWallet = catchAsync(async (req, res) => {
+    const {address} = req.body;
+    const user = await authService.loginUserWithWallet(address);
+    if (!user) {
+        res.status(httpStatus.UNAUTHORIZED).send({
+            "message": "Invalid credentials",
+        });
+        return;
+    }
+    const tokens = await tokenService.generateAuthTokens(user);
+    res.send({user,tokens});
+});
+
+const register = catchAsync(async (req, res) => {
+    const user = await userServices.createUser(req.body);
+    if (user) {
+        const tokens = await tokenService.generateAuthTokens(user);
+        res.send({user, tokens});
+        return;
+    }
+    res.status(httpStatus.CONFLICT).send({
+        "message": "User already exists",
+    })
+
+});
+
+const registerWallet = catchAsync(async (req, res) => {
+    const user = await userServices.createUserWithWallet(req.body);
+    if (user) {
+        const tokens = await tokenService.generateAuthTokens(user);
+        res.send({user, tokens});
+        return;
+    }
+    res.status(httpStatus.CONFLICT).send({
+        "message": "User already exists",
+    })
+
+});
+
+const logout = catchAsync(async (req, res) => {
+    await authService.logout(req.body.refreshToken);
+    res.status(httpStatus.NO_CONTENT).send();
+});
+
+const logoutWallet = catchAsync(async (req, res) => {
+   
+});
+
+const refreshTokens = catchAsync(async (req, res) => {
+    const tokens = await authService.refreshAuth(req.body.refreshToken);
+    res.send({...tokens});
+});
+
+
+const forgotPassword = catchAsync(async (req, res) => {
+    const resetPasswordToken = await tokenService.generateResetPasswordToken(req.body.email);
+    //await emailService.sendResetPasswordEmail(req.body.email, resetPasswordToken);
+    res.status(httpStatus.NO_CONTENT).send();
+});
+
+
+const resetPassword = catchAsync(async (req, res) => {
+    await authService.resetPassword(req.query.token, req.body.password);
+    res.status(httpStatus.NO_CONTENT).send();
+});
+
+const sendVerificationEmail = catchAsync(async (req, res) => {
+    const verifyEmailToken = await tokenService.generateVerifyEmailToken(req.user);
+   // await emailService.sendVerificationEmail(req.user.email, verifyEmailToken);
+    res.status(httpStatus.NO_CONTENT).send();
+});
+
+
+const verifyEmail = catchAsync(async (req, res) => {
+    await authService.verifyEmail(req.query.token);
+    res.status(httpStatus.NO_CONTENT).send();
+});
+
+const verifySMS = catchAsync(async (req, res) => {
+});
+
+module.exports = {
+    login,
+    register,
+    logout,
+    refreshTokens,
+    forgotPassword,
+    resetPassword,
+    sendVerificationEmail,
+    verifyEmail,
+    registerWallet,
+    loginWallet,
+    verifySMS
+}
+// File: controller/bot.controller.js
+const botServices = require("../service/bot.service");
+const httpStatus = require("http-status");
+const catchAsync = require("../utils/catchAsync");
+
+const createBot = catchAsync(async (req, res) => {
+    const reqBody=req.body
+    const bot = await botServices.createBot(reqBody);
+    if (bot) {
+        res.send({ bot });
+        return;
+    }
+    res.status(httpStatus.INTERNAL_SERVER_ERROR).send({
+        "message": "Can not create bot",
+    })
+});
+
+const getAllBots = catchAsync(async (req, res) => {
+    const bots = await botServices.getAllBots();
+    res.send({ bots });
+});
+
+const getBotById = catchAsync(async (req, res) => {
+    const bot = await botServices.getBotById(req.params.id);
+    if (!bot) {
+        res.status(httpStatus.NOT_FOUND).send({
+            "message": "Bot not found",
+        })
+        return;
+    }
+    res.send({ bot });
+});
+
+const updateBotById = catchAsync(async (req, res) => {
+    const reqBody=req.body
+    const bot = await botServices.updateBot(req.params.id,reqBody);
+    if (!bot) {
+        res.status(httpStatus.NOT_FOUND).send({
+            "message": "Bot not found",
+        })
+        return;
+    }
+    res.send({ bot });
+});
+
+const deleteBotById = catchAsync(async (req, res) => {
+    const deleted = await botServices.deleteBotById(req.params.id);
+    if (!deleted) {
+        res.status(httpStatus.INTERNAL_SERVER_ERROR).send({
+            "message": "Can not update bot",
+        })
+        return 
+    }
+    res.status(httpStatus.NO_CONTENT).send();
+});
+
+
+module.exports = {
+    deleteBotById,
+    getBotById,
+    getAllBots,
+    createBot,
+    updateBotById
+}
+// File: controller/hello.controller.js
+
+const hello = (req, res) => {
+    res.send({
+        status: true,
+        code  : 200,
+        data  : {
+            message: 'Blockbounce API is ok!'
+        }
+    })
+}
+
+
+module.exports = {
+  hello
+}
+// File: controller/transaction.controller.js
+const transactionServices = require("../service/transaction.service");
+const httpStatus = require("http-status");
+const catchAsync = require("../utils/catchAsync");
+
+const createTransaction = catchAsync(async (req, res) => {
+    const reqBody = req.body
+    const transaction = await transactionServices.createTransaction(reqBody);
+    if (transaction) {
+        res.send({ transaction });
+        return;
+    }
+    res.status(httpStatus.INTERNAL_SERVER_ERROR).send({
+        "message": "Can not create transaction",
+    })
+});
+
+const getAllTransactions = catchAsync(async (req, res) => {
+    const transactions = await transactionServices.getAllTransactions();
+    res.send({ transactions });
+});
+
+const getTransactionsByUserId = catchAsync(async (req, res) => {
+    const transactions = await transactionServices.getTransactionsByUserId(req.params.id);
+    res.send({ transactions });
+});
+
+const getTransactionById = catchAsync(async (req, res) => {
+    const transaction = await transactionServices.getTransactionById(req.params.id);
+    if (!transaction) {
+        res.status(httpStatus.NOT_FOUND).send({
+            "message": "Transaction not found",
+        })
+        return;
+    }
+    res.send({ transaction });
+});
+
+const updateTransactionById = catchAsync(async (req, res) => {
+    const reqBody = req.body
+    const transaction = await transactionServices.updateTransaction(req.params.id, reqBody);
+    if (!transaction) {
+        res.status(httpStatus.NOT_FOUND).send({
+            "message": "Transaction not found",
+        })
+        return;
+    }
+    res.send({ transaction });
+});
+
+const deleteTransactionById = catchAsync(async (req, res) => {
+    const deleted = await transactionServices.deleteTransactionById(req.params.id);
+    if (!deleted) {
+        res.status(httpStatus.INTERNAL_SERVER_ERROR).send({
+            "message": "Can not update transaction",
+        })
+        return
+    }
+    res.status(httpStatus.NO_CONTENT).send();
+});
+
+
+module.exports = {
+    deleteTransactionById,
+    getTransactionById,
+    getAllTransactions,
+    createTransaction,
+    updateTransactionById,
+    getTransactionsByUserId
+}
+// File: controller/user.controller.js
+const db = require("../models");
+const User = db.user;
+const userServices = require("../service/user.service");
+const httpStatus = require("http-status");
+const catchAsync = require("../utils/catchAsync");
+
+const signUp = catchAsync(async (req, res) => {
+    const user = await userServices.createUser(req.body);
+    if (user) {
+        res.send({ user });
+        return;
+    }
+    res.status(httpStatus.CONFLICT).send({
+        "message": "User already exists",
+    })
+});
+
+const getUserById = catchAsync(async (req, res) => {
+    const user = await userServices.getUserById(req.params.id);
+    if (!user) {
+        res.send({
+            "message": "User not found",
+        })
+        return;
+    }
+    res.send({ user });
+});
+const updateUser = catchAsync(async (req, res) => {
+    const row = await userServices.updateUserById(req.params.id, req.body);
+    if (!row) {
+        res.send({
+            "message": "User not found",
+        })
+        return;
+    }
+
+    res.send(await userServices.getUserById(req.params.id));
+});
+
+const updateSetting = catchAsync(async (req, res) => {
+    const row = await userServices.updateSetting(req.params.id, req.body);
+    if (!row) {
+        res.send({
+            "message": "User Setting not found",
+        })
+        return;
+    }
+
+    res.send(row);
+});
+
+const getUserSetting = catchAsync(async (req, res) => {
+    const setting = await userServices.getUserSetting(req.params.id);
+    if (!setting) {
+        res.send({
+            "message": "User Setting not found",
+        })
+        return;
+    }
+
+    res.send(setting);
+});
+const deleteUser = catchAsync(async (req, res) => {
+    const deleted = await userServices.deleteUserById(req.params.id);
+    if (!deleted) {
+        res.send({
+            "message": "User not found",
+        })
+    }
+    res.status(httpStatus.NO_CONTENT).send();
+});
+
+const getAllUsers = catchAsync(async (req, res) => {
+    const users = await User.findAll();
+    res.send({ users });
+});
+
+
+module.exports = {
+    signUp,
+    getUserById,
+    updateUser,
+    deleteUser,
+    getAllUsers,
+    updateSetting,
+    getUserSetting
+}
+// File: models/bot.js
+'use strict';
+const {
+  Model
+} = require('sequelize');
+module.exports = (sequelize, DataTypes) => {
+  class bot extends Model {
+    /**
+     * Helper method for defining associations.
+     * This method is not a part of Sequelize lifecycle.
+     * The `models/index` file will call this method automatically.
+     */
+    static associate(models) {
+      // define association here
+      bot.hasMany(models.transaction, { foreignKey: "botId", onDelete: "cascade" })
+      bot.belongsTo(models.user, { foreignKey: "userId" })
+    }
+  }
+  bot.init({
+    userId:DataTypes.INTEGER,
+    token: DataTypes.STRING,
+    isDeleted:DataTypes.BOOLEAN,
+    isActive:DataTypes.BOOLEAN,
+    botType: DataTypes.STRING,
+    thresholdPrice:DataTypes.STRING,
+    createdAt:DataTypes.INTEGER
+  }, {
+    sequelize,
+    modelName: 'bot',
+  });
+  return bot;
+};
+// File: models/index.js
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const Sequelize = require('sequelize');
+const process = require('process');
+const basename = path.basename(__filename);
+const env = process.env.NODE_ENV || 'development';
+const config = require(__dirname + '/../config/config.json')[env];
+const db = {};
+
+let sequelize;
+if (config.use_env_variable) {
+  sequelize = new Sequelize(process.env[config.use_env_variable], config);
+} else {
+  sequelize = new Sequelize(config.database, config.username, config.password, config);
+}
+
+fs
+  .readdirSync(__dirname)
+  .filter(file => {
+    return (file.indexOf('.') !== 0) && (file !== basename) && (file.slice(-3) === '.js');
+  })
+  .forEach(file => {
+    const model = require(path.join(__dirname, file))(sequelize, Sequelize.DataTypes);
+    db[model.name] = model;
+  });
+
+Object.keys(db).forEach(modelName => {
+  if (db[modelName].associate) {
+    db[modelName].associate(db);
+  }
+});
+
+db.sequelize = sequelize;
+db.Sequelize = Sequelize;
+
+module.exports = db;
+
+// File: models/setting.js
+'use strict';
+const {
+  Model
+} = require('sequelize');
+module.exports = (sequelize, DataTypes) => {
+  class setting extends Model {
+    /**
+     * Helper method for defining associations.
+     * This method is not a part of Sequelize lifecycle.
+     * The `models/index` file will call this method automatically.
+     */
+    static associate(models) {
+      // define association here
+      setting.belongsTo(models.user, { foreignKey: "userId" })
+    }
+  }
+  setting.init({
+    userId:DataTypes.INTEGER,
+    tradeAmount: DataTypes.STRING,
+    limitOrders:DataTypes.STRING,
+    sellProfit:DataTypes.STRING,
+    stopLossAt: DataTypes.STRING,
+    wallet: DataTypes.STRING,
+  }, {
+    sequelize,
+    modelName: 'setting',
+  });
+  return setting;
+};
+// File: models/token.js
+'use strict';
+const {
+  Model
+} = require('sequelize');
+module.exports = (sequelize, DataTypes) => {
+  class token extends Model {
+    /**
+     * Helper method for defining associations.
+     * This method is not a part of Sequelize lifecycle.
+     * The `models/index` file will call this method automatically.
+     */
+    static associate(models) {
+      // define association here
+    }
+  }
+  token.init({
+    token: DataTypes.STRING,
+    user_id: DataTypes.STRING,
+    type: DataTypes.STRING,
+    expire_at: DataTypes.DATE,
+    black_listed: DataTypes.INTEGER
+  }, {
+    sequelize,
+    modelName: 'token',
+  });
+  return token;
+};
+// File: models/transaction.js
+'use strict';
+const {
+  Model
+} = require('sequelize');
+module.exports = (sequelize, DataTypes) => {
+  class transaction extends Model {
+    /**
+     * Helper method for defining associations.
+     * This method is not a part of Sequelize lifecycle.
+     * The `models/index` file will call this method automatically.
+     */
+    static associate(models) {
+      // define association here
+      transaction.belongsTo(models.user, { foreignKey: "userId" })
+      transaction.belongsTo(models.bot, { foreignKey: "botId" })
+    }
+  }
+  transaction.init({
+    userId:DataTypes.INTEGER,
+    botId: DataTypes.INTEGER,
+    amount:DataTypes.STRING,
+    fee:DataTypes.STRING,
+    type: DataTypes.STRING,
+    hash: DataTypes.STRING,
+  }, {
+    sequelize,
+    modelName: 'transaction',
+  });
+  return transaction;
+};
+// File: models/user.js
+'use strict';
+const {
+  Model
+} = require('sequelize');
+module.exports = (sequelize, DataTypes) => {
+  class user extends Model {
+    /**
+     * Helper method for defining associations.
+     * This method is not a part of Sequelize lifecycle.
+     * The `models/index` file will call this method automatically.
+     */
+    static associate(models) {
+      // define association here
+      user.hasOne(models.setting, { foreignKey: "userId", onDelete: "cascade" })
+      user.hasMany(models.bot, { foreignKey: "userId", onDelete: "cascade" })
+      user.hasMany(models.transaction, { foreignKey: "userId", onDelete: "cascade" })
+    }
+  }
+  user.init({
+    firstname: DataTypes.STRING,
+    lastname: DataTypes.STRING,
+    username: DataTypes.STRING,
+    address: DataTypes.STRING,
+    email: DataTypes.STRING,
+    password: DataTypes.STRING,
+    gender: DataTypes.STRING,
+    active: DataTypes.INTEGER,
+    deleted: DataTypes.INTEGER,
+    token: DataTypes.STRING,
+    token_expire: DataTypes.STRING,
+    birthday: DataTypes.DATE,
+    role: DataTypes.STRING,
+    balance: DataTypes.INTEGER,
+    current: DataTypes.INTEGER,
+    previous: DataTypes.INTEGER,
+  }, {
+    sequelize,
+    modelName: 'user',
+  });
+
+  user.isEmailTaken = async (email, excludeUserId) => {
+    const user = await user.findOne({
+      where: {
+        email,
+        userId: {
+          [Op.ne]: excludeUserId
+        }
+      }
+    });
+    return user;
+  }
+
+  user.isPasswordMatch = async (password, hash) => {
+    return bcrypt.compareSync(password, hash);
+  }
+  return user;
+};
+// File: middleware/auth.js
+const passport = require('passport');
+const httpStatus = require('http-status');
+const ApiError = require('../utils/ApiError');
+const { roleRights } = require('../config/roles');
+
+const verifyCallback = (req, resolve, reject, requiredRights) => async (err, user, info) => {
+    if (err || info || !user) {
+        return reject(new ApiError(httpStatus.UNAUTHORIZED, 'Please authenticate'));
+    }
+    req.user = user;
+
+    if (requiredRights.length) {
+        const userRights = roleRights.get(user.role);
+        const hasRequiredRights = requiredRights.every((requiredRight) => userRights.includes(requiredRight));
+        if (!hasRequiredRights && req.params.userId !== user.id) {
+            return reject(new ApiError(httpStatus.FORBIDDEN, 'Forbidden'));
+        }
+    }
+
+    resolve();
+};
+
+const auth = (...requiredRights) => async (req, res, next) => {
+    return new Promise((resolve, reject) => {
+        passport.authenticate('jwt', { session: false }, verifyCallback(req, resolve, reject, requiredRights))(req, res, next);
+    })
+        .then(() => next())
+        .catch((err) => next(err));
+};
+
+module.exports = auth;
+
+// File: middleware/validate.js
+const Joi = require('joi');
+const httpStatus = require('http-status');
+const pick = require('../utils/pick');
+const ApiError = require('../utils/ApiError');
+
+const validate = (schema) => (req, res, next) => {
+  const validSchema = pick(schema, ['params', 'query', 'body']);
+  const object = pick(req, Object.keys(validSchema));
+  const { value, error } = Joi.compile(validSchema)
+    .prefs({ errors: { label: 'key' }, abortEarly: false })
+    .validate(object);
+
+  if (error) {
+    const errorMessage = error.details.map((details) => details.message).join(', ');
+    return next(new ApiError(httpStatus.BAD_REQUEST, errorMessage));
+  }
+  Object.assign(req, value);
+  return next();
+};
+
+module.exports = validate;
+
+// File: service/auth.service.js
+const httpStatus = require('http-status');
+const bcrypt = require('bcrypt');
+const tokenService = require('./token.service');
+const userService = require('./user.service');
+const db = require("../models");
+const Token = db.token;
+const ApiError = require('../utils/ApiError');
+const {tokenTypes} = require('../config/token');
+
+/**
+ * Login with username and password
+ * @param {string} email
+ * @param {string} password
+ * @returns {Promise<User>}
+ */
+const loginUserWithEmailAndPassword = async (email, password) => {
+    const user = await userService.getUserByEmail(email);
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+        return null;
+    }
+    return user;
+};
+
+/**
+ * Login with username and password
+ * @param {string} email
+ * @param {string} password
+ * @returns {Promise<User>}
+ */
+const loginUserWithWallet = async (address) => {
+    const user = await userService.getUserByAddress(address);
+    return user;
+};
+
+/**
+ * Logout
+ * @param {string} refreshToken
+ * @returns {Promise}
+ */
+const logout = async (refreshToken) => {
+    const refreshTokenDoc = await Token.findOne({
+        where: {
+            token      : refreshToken,
+            type       : tokenTypes.REFRESH,
+            black_listed: false
+        }
+    });
+    if (!refreshTokenDoc) {
+        return null;
+    }
+    await refreshTokenDoc.destroy();
+};
+
+/**
+ * Refresh auth tokens
+ * @param {string} refreshToken
+ * @returns {Promise<Object>}
+ */
+const refreshAuth = async (refreshToken) => {
+    try {
+        const refreshTokenDoc = await tokenService.verifyToken(refreshToken, tokenTypes.REFRESH);
+        const user = await userService.getUserById(refreshTokenDoc.user_id);
+        if (!user) {
+            throw new Error();
+        }
+        await refreshTokenDoc.destroy();
+        return tokenService.generateAuthTokens(user);
+    } catch (error) {
+        throw new ApiError(httpStatus.UNAUTHORIZED, 'Please authenticate');
+    }
+};
+
+/**
+ * Reset password
+ * @param {string} resetPasswordToken
+ * @param {string} newPassword
+ * @returns {Promise}
+ */
+const resetPassword = async (resetPasswordToken, newPassword) => {
+    try {
+        const resetPasswordTokenDoc = await tokenService.verifyToken(resetPasswordToken, tokenTypes.RESET_PASSWORD);
+        const user = await userService.getUserById(resetPasswordTokenDoc.user_id);
+        if (!user) {
+            throw new Error();
+        }
+        await userService.updateUserById(user.id, {password: newPassword});
+        await Token.destroy({where: {user_id: user.id, type: tokenTypes.RESET_PASSWORD}});
+    } catch (error) {
+        throw new ApiError(httpStatus.UNAUTHORIZED, 'Password reset failed');
+    }
+};
+
+/**
+ * Verify email
+ * @param {string} verifyEmailToken
+ * @returns {Promise}
+ */
+const verifyEmail = async (verifyEmailToken) => {
+    try {
+        const verifyEmailTokenDoc = await tokenService.verifyToken(verifyEmailToken, tokenTypes.VERIFY_EMAIL);
+        const user = await userService.getUserById(verifyEmailTokenDoc.user_id);
+
+        if (!user) {
+            throw new Error();
+        }
+        await Token.destroy({where: {user_id: user.id, type: tokenTypes.VERIFY_EMAIL}});
+        await userService.updateUserById(user.id, {active: 1});
+    } catch (error) {
+        throw new ApiError(httpStatus.UNAUTHORIZED, 'Email verification failed');
+    }
+};
+
+const verifySMS = async (verifySMSToken) => {
+    try {
+       
+    } catch (error) {
+        throw new ApiError(httpStatus.UNAUTHORIZED, 'SMS verification failed');
+    }
+};
+
+module.exports = {
+    loginUserWithEmailAndPassword,
+    logout,
+    refreshAuth,
+    resetPassword,
+    verifyEmail,
+    loginUserWithWallet,
+    verifySMS
+};
+
+// File: service/bot.service.js
+const httpStatus = require('http-status');
+const db = require("../models");
+const Bot = db.bot;
+const User = db.user;
+const ApiError = require('../utils/ApiError');
+//TODO- change address to user id
+const createBot = async ({ token, isDeleted, isActive, botType, thresholdPrice, createdAt, address }) => {
+    const user = await User.findOne({
+        where: { address }
+    });
+    if (!user) {
+        throw new ApiError(httpStatus.NOT_FOUND, 'Can not find user');
+    }
+    const bot = await Bot.create({ token, userId: user.id, isDeleted, isActive, botType, thresholdPrice, createdAt });
+    return bot;
+};
+
+const getAllBots = async (filter, options) => {
+    const bots = await Bot.findAll();
+    return bots;
+};
+
+const getBotById = async (id) => {
+    return Bot.findOne({ where: { id } });
+};
+
+const updateBot = async (id, updateBody) => {
+    const bot = await Bot.findOne({ where: { id } })
+    if (!bot) {
+        throw new ApiError(httpStatus.NOT_FOUND, 'Not Found Bot');
+    }
+    const { isDeleted = bot.isDeleted, isActive = bot.isActive, botType = bot.botType, thresholdPrice = bot.thresholdPrice, createdAt = bot.createdAt } = updateBody
+    const updateData = {
+        isDeleted,
+        isActive,
+        botType,
+        thresholdPrice,
+        createdAt
+    }
+    const row = await Bot.update(updateData, {
+        where: { id },
+    });
+    return row;
+};
+
+
+const deleteBotById = async (botId) => {
+    const bot = await getBotById(botId);
+    if (!bot) return null
+    await bot.destroy();
+    return bot;
+};
+
+module.exports = {
+    createBot,
+    getAllBots,
+    getBotById,
+    deleteBotById,
+    updateBot
+};
+
+// File: service/email.service.js
+const nodemailer = require('nodemailer');
+const config = require('../config/config');
+const logger = require('../config/logger');
+
+const transport = nodemailer.createTransport(
+    {
+        host: process.env.SMTP_HOST,
+        port: process.env.SMTP_PORT,
+        from: process.env.EMAIL_FROM,
+        auth: {
+            user: process.env.SMTP_USERNAME,
+            pass: process.env.SMTP_PASSWORD,
+        },
+
+    },
+);
+
+// if (process.env.NODE_ENV !== 'test' || process.env.NODE_ENV !== 'development') {
+if (process.env.NODE_ENV !== 'test' ) {
+    transport
+        .verify()
+        .then(() => logger.info('Connected to email server'))
+        .catch(() => logger.warn('Unable to connect to email server. Make sure you have configured the SMTP options in .env'));
+}
+
+
+const sendEmail = async (to, subject, text) => {
+    const msg = {from: process.env.EMAIL_FROM, to, subject, text};
+    await transport.sendMail(msg);
+};
+
+const sendResetPasswordEmail = async (to, token) => {
+    const subject = 'Reset password';
+    // replace this url with the link to the reset password page of your front-end app
+    const resetPasswordUrl = `http://link-to-app/reset-password?token=${token}`;
+    const text = `Dear user,
+To reset your password, click on this link: ${resetPasswordUrl}
+If you did not request any password resets, then ignore this email.`;
+    await sendEmail(to, subject, text);
+};
+
+
+const sendVerificationEmail = async (to, token) => {
+    const subject = 'Email Verification';
+    // replace this url with the link to the email verification page of your front-end app
+    const verificationEmailUrl = `http://link-to-app/verify-email?token=${token}`;
+    const text = `Dear user,
+To verify your email, click on this link: ${verificationEmailUrl}
+If you did not create an account, then ignore this email.`;
+    await sendEmail(to, subject, text);
+};
+
+module.exports = {
+    transport,
+    sendEmail,
+    sendResetPasswordEmail,
+    sendVerificationEmail,
+};
+
+// File: service/index.js
+module.exports.userService = require('./user.service');
+// File: service/token.service.js
+const jwt = require('jsonwebtoken');
+const moment = require('moment');
+const httpStatus = require('http-status');
+const userService = require('./user.service');
+const db = require("../models");
+const Token = db.token;
+const {tokenTypes} = require('../config/token');
+const ApiError = require('../utils/ApiError');
+
+
+const generateToken = (userId, expires, type, secret = process.env.JWT_SECRET) => {
+    const payload = {
+        sub: userId,
+        iat: moment().unix(),
+        exp: expires.unix(),
+        type,
+    };
+    return jwt.sign(payload, secret);
+};
+
+
+const saveToken = async (token, userId, expires, type, blacklisted = false) => {
+    const tokenDoc = await Token.create({
+        token,
+        user_id     : userId,
+        expire_at   : expires.toDate(),
+        type,
+        black_listed: blacklisted,
+    });
+
+    return tokenDoc;
+};
+
+
+const verifyToken = async (token, type) => {
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const tokenDoc = await Token.findOne({
+        where: {
+            token,
+            type,
+            user_id     : payload.sub,
+            black_listed: false
+        }
+    });
+    if (!tokenDoc) return null;
+    return tokenDoc;
+};
+
+/**
+ * Generate auth tokens
+ * @param {User} user
+ * @returns {Promise<Object>}
+ */
+const generateAuthTokens = async (user) => {
+
+    const accessTokenExpires = moment().add(process.env.JWT_ACCESS_EXPIRATION_MINUTES, 'minutes');
+    const accessToken = generateToken(user.id, accessTokenExpires, tokenTypes.ACCESS);
+
+    const refreshTokenExpires = moment().add(process.env.JWT_REFRESH_EXPIRATION_DAYS, 'days');
+    const refreshToken = generateToken(user.id, refreshTokenExpires, tokenTypes.REFRESH);
+    await saveToken(refreshToken, user.id, refreshTokenExpires, tokenTypes.REFRESH);
+
+    return {
+        access : {
+            token  : accessToken,
+            expires: accessTokenExpires.toDate(),
+        },
+        refresh: {
+            token  : refreshToken,
+            expires: refreshTokenExpires.toDate(),
+        },
+    };
+};
+
+
+const generateResetPasswordToken = async (email) => {
+    const user = await userService.getUserByEmail(email);
+    if (!user) {
+        throw new ApiError(httpStatus.NOT_FOUND, 'No users found with this email');
+    }
+    const expires = moment().add(process.env.JWT_RESET_PASSWORD_EXPIRATION_MINUTES, 'minutes');
+    const resetPasswordToken = generateToken(user.id, expires, tokenTypes.RESET_PASSWORD);
+    await saveToken(resetPasswordToken, user.id, expires, tokenTypes.RESET_PASSWORD);
+    return resetPasswordToken;
+};
+
+
+const generateVerifyEmailToken = async (user) => {
+    const expires = moment().add(process.env.JWT_VERIFY_EMAIL_EXPIRATION_MINUTES, 'minutes');
+    const verifyEmailToken = generateToken(user.id, expires, tokenTypes.VERIFY_EMAIL);
+    await saveToken(verifyEmailToken, user.id, expires, tokenTypes.VERIFY_EMAIL);
+    return verifyEmailToken;
+};
+
+module.exports = {
+    generateToken,
+    saveToken,
+    verifyToken,
+    generateAuthTokens,
+    generateResetPasswordToken,
+    generateVerifyEmailToken,
+};
+
+// File: service/transaction.service.js
+const httpStatus = require('http-status');
+const db = require("../models");
+const Transaction = db.transaction;
+const User = db.user;
+const Bot = db.bot;
+const ApiError = require('../utils/ApiError');
+//TODO- change address to user id
+const createTransaction = async ({ userId, botId, amount, fee, type, hash }) => {
+    const user = await User.findOne({
+        where: { id: userId }
+    });
+    if (!user) {
+        throw new ApiError(httpStatus.NOT_FOUND, 'Can not find user');
+    }
+    const bot = await Bot.findOne({
+        where: { id: botId }
+    });
+    if (!bot) {
+        throw new ApiError(httpStatus.NOT_FOUND, 'Can not find bot');
+    }
+    const transaction = await Transaction.create({ userId, botId, amount, fee, type, hash });
+    return transaction;
+};
+
+const getAllTransactions = async (filter, options) => {
+    const transactions = await Transaction.findAll();
+    return transactions;
+};
+
+const getTransactionsByUserId = async (userId) => {
+    const transactions = await Transaction.findAll({ where: { userId }, });
+    return transactions;
+};
+
+const getTransactionById = async (id) => {
+    return Transaction.findOne({ where: { id } });
+};
+
+const updateTransaction = async (id, updateBody) => {
+    const transaction = await Transaction.findOne({ where: { id } })
+    if (!transaction) {
+        throw new ApiError(httpStatus.NOT_FOUND, 'Not Found Transaction');
+    }
+    const { userId = transaction.userId, botId = transaction.botId, amount = transaction.amount, fee = transaction.fee, type = transaction.type, hash = transaction.hash } = updateBody
+    const updateData = {
+        userId, botId, amount, fee, type, hash
+    }
+    const row = await Transaction.update(updateData, {
+        where: { id },
+    });
+    return row;
+};
+
+
+const deleteTransactionById = async (transactionId) => {
+    const transaction = await getTransactionById(transactionId);
+    if (!transaction) return null
+    await transaction.destroy();
+    return transaction;
+};
+
+module.exports = {
+    createTransaction,
+    getAllTransactions,
+    getTransactionById,
+    deleteTransactionById,
+    updateTransaction,
+    getTransactionsByUserId
+};
+
+// File: service/user.service.js
+const db = require("../models");
+const bcrypt = require("bcrypt");
+const User = db.user;
+const Bot = db.bot;
+const Setting = db.setting;
+const Transaction = db.transaction;
+const ApiError = require('../utils/ApiError');
+const httpStatus = require('http-status');
+const createUser = async (params) => {
+    const { firstname, lastname, address, username, email, password, role } = params;
+    const salt = bcrypt.genSaltSync(10);
+    const hash = bcrypt.hashSync(password, salt);
+    const user = {
+        firstname,
+        lastname,
+        username,
+        email,
+        password: hash,
+        role,
+        active: 0,
+        deleted: 0,
+        balance: 0,
+        current: 0,
+        previous: 0
+    }
+
+    const [row, created] = await User.findOrCreate({
+        where: { email: user.email },
+        defaults: user,
+    });
+    if (created) {
+        const setting = await Setting.create({
+            userId: row.id,
+            tradeAmount: "1",
+            limitOrders: "1",
+            sellProfit: "1",
+            stopLossAt: "-15"
+        })
+        if (setting)
+            return row;
+        return null
+    }
+    return null;
+};
+
+const createUserWithWallet = async (params) => {
+    const { firstname, lastname, address, username, email, password, role } = params;
+    const user = {
+        firstname,
+        lastname,
+        username,
+        email,
+        address,
+        role,
+        active: 0,
+        deleted: 0,
+        balance: 0,
+        current: 0,
+        previous: 0
+    }
+
+    const [row, created] = await User.findOrCreate({
+        where: { address: user.address },
+        defaults: user,
+    });
+    if (created) {
+        const setting = await Setting.create({
+            userId: row.id,
+            tradeAmount: "1",
+            limitOrders: "1",
+            sellProfit: "1",
+            stopLossAt: "-15"
+        })
+        if (setting)
+            return row;
+        return null
+    }
+    return null;
+};
+
+
+const getAllUsers = async (filter, options) => {
+    const users = await User.findAll();
+    return users;
+};
+
+const getUserById = async (id) => {
+    return User.findOne({ where: { id } });
+};
+
+const getUserByEmail = async (email) => {
+    return User.findOne({ where: { email } });
+};
+
+const getUserByAddress = async (address) => {
+    return User.findOne({
+        where: { address },
+        include: [
+            {
+                model: Bot,
+            },
+            {
+                model: Setting,
+            },
+            {
+                model: Transaction,
+            }
+        ],
+    });
+};
+
+
+const updateUserById = async (userId, updateBody) => {
+    const { firstname, lastname, username, email, password, active } = updateBody;
+    const user = {
+        firstname,
+        lastname,
+        username,
+        email,
+        active,
+    }
+    if (password) {
+        const salt = bcrypt.genSaltSync(10);
+        const hash = bcrypt.hashSync(password, salt);
+        user.password = hash;
+    }
+
+    const row = await User.update(user, {
+        where: { id: userId },
+    });
+    return row;
+};
+const getUserSetting = async (id) => {
+    return Setting.findOne({ where: { userId: id } })
+}
+const updateSetting = async (id, updateBody) => {
+    const setting = await Setting.findOne({ where: { id } })
+    if (!setting) {
+        throw new ApiError(httpStatus.NOT_FOUND, 'Not Found Bot');
+    }
+    const { tradeAmount = setting.tradeAmount, limitOrders = setting.limitOrders, sellProfit = setting.sellProfit, stopLossAt = setting.stopLossAt, wallet = setting.wallet } = updateBody
+    const updateData = {
+        tradeAmount,
+        limitOrders,
+        sellProfit,
+        stopLossAt,
+        wallet,
+    }
+    const row = await Setting.update(updateData, {
+        where: { id },
+    });
+    return row;
+};
+
+
+const deleteUserById = async (userId) => {
+    const user = await getUserById(userId);
+    if (!user) return null
+    await user.destroy();
+    return user;
+};
+
+module.exports = {
+    createUser,
+    getAllUsers,
+    getUserById,
+    getUserByEmail,
+    updateUserById,
+    deleteUserById,
+    createUserWithWallet,
+    getUserByAddress,
+    updateSetting,
+    getUserSetting
+};
+
+// File: utils/ApiError.js
+class ApiError extends Error {
+  constructor(statusCode, message, isOperational = true, stack = '') {
+    super(message);
+    this.statusCode = statusCode;
+    this.isOperational = isOperational;
+    this.message = message;
+    if (stack) {
+      this.stack = stack;
+    } else {
+      Error.captureStackTrace(this, this.constructor);
+    }
+  }
+}
+
+module.exports = ApiError;
+
+// File: utils/catchAsync.js
+const catchAsync = (fn) => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch((err) => next(err));
+};
+
+module.exports = catchAsync;
+
+// File: utils/pick.js
+/**
+ * Create an object composed of the picked object properties
+ * @param {Object} object
+ * @param {string[]} keys
+ * @returns {Object}
+ */
+const pick = (object, keys) => {
+  return keys.reduce((obj, key) => {
+    if (object && Object.prototype.hasOwnProperty.call(object, key)) {
+      // eslint-disable-next-line no-param-reassign
+      obj[key] = object[key];
+    }
+    return obj;
+  }, {});
+};
+
+module.exports = pick;
+
+// File: config/config.json
+{
+  "development": {
+    "username": "VarunSunder",
+    "password": "password",
+    "database": "blockbounce_dev",
+    "host": "127.0.0.1",
+    "dialect": "mysql"
+  },
+  "test": {
+    "username": "VarunSunder",
+    "password": "password",
+    "database": "blockbounce_test",
+    "host": "127.0.0.1",
+    "dialect": "mysql"
+  },
+  "production": {
+    "username": "VarunSunder",
+    "password": "password",
+    "database": "blockbounce_prod",
+    "host": "127.0.0.1",
+    "dialect": "mysql"
+  }
+}
+
+// File: config/logger.js
+const winston = require('winston');
+
+const logConfiguration = {
+
+    format: winston.format.combine(
+        winston.format.timestamp({
+            format: 'MMM-DD-YYYY HH:mm:ss'
+        }),
+        winston.format.printf(info => `${info.level}: ${[info.timestamp]}: ${info.message}`),
+    ),
+    transports: [
+        new winston.transports.Console(),
+        new winston.transports.File({filename: 'logs/error/error.log', level: 'error'}),
+        new winston.transports.File({filename: 'logs/activity/activity.log', level:'info'})
+    ],
+};
+
+const logger = winston.createLogger(logConfiguration);
+
+
+
+module.exports = logger;
+// File: config/passport.js
+const { Strategy: JwtStrategy, ExtractJwt } = require('passport-jwt');
+const { tokenTypes } = require('./token');
+const db = require("../models");
+const User = db.user;
+
+const jwtOptions = {
+    secretOrKey: 'security' || process.env.JWT_SECRET,
+    jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+};
+
+const jwtVerify = async (payload, done) => {
+    try {
+        if (payload.type !== tokenTypes.ACCESS) {
+            throw new Error('Invalid token type');
+        }
+        const user = await User.findByPk(payload.sub);
+        if (!user) {
+            return done(null, false);
+        }
+        done(null, user);
+    } catch (error) {
+        done(error, false);
+    }
+};
+
+const jwtStrategy = new JwtStrategy(jwtOptions, jwtVerify);
+
+module.exports = {
+    jwtStrategy,
+};
+
+// File: config/roles.js
+const allRoles = {
+    user: [],
+    admin: ['getUsers', 'manageUsers'],
+};
+
+const roles = Object.keys(allRoles);
+const roleRights = new Map(Object.entries(allRoles));
+
+module.exports = {
+    roles,
+    roleRights,
+};
+
+// File: config/token.js
+const tokenTypes = {
+    ACCESS: 'access',
+    REFRESH: 'refresh',
+    RESET_PASSWORD: 'resetPassword',
+    VERIFY_EMAIL: 'verifyEmail',
+};
+
+module.exports = {
+    tokenTypes,
+};
+
+// File: migrations/20221129184012-create-user.js
+'use strict';
+/** @type {import('sequelize-cli').Migration} */
+module.exports = {
+  async up(queryInterface, Sequelize) {
+    await queryInterface.createTable('users', {
+      id: {
+        allowNull: false,
+        autoIncrement: true,
+        primaryKey: true,
+        type: Sequelize.INTEGER
+      },
+      firstname: {
+        type: Sequelize.STRING
+      },
+      lastname: {
+        type: Sequelize.STRING
+      },
+      username: {
+        type: Sequelize.STRING
+      },
+      address: {
+        type: Sequelize.STRING
+      },
+      email: {
+        type: Sequelize.STRING
+      },
+      password: {
+        type: Sequelize.STRING
+      },
+      gender: {
+        type: Sequelize.STRING
+      },
+      active: {
+        type: Sequelize.INTEGER
+      },
+      deleted: {
+        type: Sequelize.INTEGER
+      },
+      token: {
+        type: Sequelize.STRING
+      },
+      token_expire: {
+        type: Sequelize.STRING
+      },
+      birthday: {
+        type: Sequelize.DATE
+      },
+      role: {
+        type: Sequelize.STRING
+      },
+      balance: {
+        type: Sequelize.INTEGER
+      },
+      current: {
+        type: Sequelize.INTEGER
+      },
+      previous: {
+        type: Sequelize.INTEGER
+      },
+      createdAt: {
+        allowNull: false,
+        type: Sequelize.DATE
+      },
+      updatedAt: {
+        allowNull: false,
+        type: Sequelize.DATE
+      }
+    });
+  },
+  async down(queryInterface, Sequelize) {
+    await queryInterface.dropTable('users');
+  }
+};
+// File: migrations/20230401132541-create-token.js
+'use strict';
+/** @type {import('sequelize-cli').Migration} */
+module.exports = {
+  async up(queryInterface, Sequelize) {
+    await queryInterface.createTable('tokens', {
+      id: {
+        allowNull: false,
+        autoIncrement: true,
+        primaryKey: true,
+        type: Sequelize.INTEGER
+      },
+      token: {
+        type: Sequelize.STRING
+      },
+      user_id: {
+        type: Sequelize.STRING
+      },
+      type: {
+        type: Sequelize.STRING
+      },
+      expire_at: {
+        type: Sequelize.DATE
+      },
+      black_listed: {
+        type: Sequelize.INTEGER
+      },
+      createdAt: {
+        allowNull: false,
+        type: Sequelize.DATE
+      },
+      updatedAt: {
+        allowNull: false,
+        type: Sequelize.DATE
+      }
+    });
+  },
+  async down(queryInterface, Sequelize) {
+    await queryInterface.dropTable('tokens');
+  }
+};
+// File: migrations/20230401132542-create-bot.js
+'use strict';
+/** @type {import('sequelize-cli').Migration} */
+module.exports = {
+  async up(queryInterface, Sequelize) {
+    await queryInterface.createTable('bots', {
+      id: {
+        allowNull: false,
+        autoIncrement: true,
+        primaryKey: true,
+        type: Sequelize.INTEGER
+      },
+      userId: {
+        type: Sequelize.INTEGER
+      },
+      token: {
+        type: Sequelize.STRING
+      },
+      isDeleted: {
+        type: Sequelize.BOOLEAN
+      },
+      isActive: {
+        type: Sequelize.BOOLEAN
+      },
+      botType: {
+        type: Sequelize.STRING
+      },
+      thresholdPrice: {
+        type: Sequelize.STRING
+      },
+      createdAt: {
+        type: Sequelize.INTEGER
+      },
+      updatedAt: {
+        allowNull: false,
+        type: Sequelize.DATE
+      }
+    });
+  },
+  async down(queryInterface, Sequelize) {
+    await queryInterface.dropTable('bots');
+  }
+};
+// File: migrations/20230401132543-create-setting.js
+'use strict';
+/** @type {import('sequelize-cli').Migration} */
+module.exports = {
+  async up(queryInterface, Sequelize) {
+    await queryInterface.createTable('settings', {
+      id: {
+        allowNull: false,
+        autoIncrement: true,
+        primaryKey: true,
+        type: Sequelize.INTEGER
+      },
+      userId: {
+        type: Sequelize.INTEGER
+      },
+      tradeAmount: {
+        type: Sequelize.STRING
+      },
+      limitOrders: {
+        type: Sequelize.STRING
+      },
+      sellProfit: {
+        type: Sequelize.STRING
+      },
+      stopLossAt: {
+        type: Sequelize.STRING
+      },
+      wallet: {
+        type: Sequelize.STRING
+      },
+      createdAt: {
+        type: Sequelize.DATE
+      },
+      updatedAt: {
+        allowNull: false,
+        type: Sequelize.DATE
+      }
+    });
+  },
+  async down(queryInterface, Sequelize) {
+    await queryInterface.dropTable('settings');
+  }
+};
+// File: migrations/20230401132544-create-transaction.js
+'use strict';
+/** @type {import('sequelize-cli').Migration} */
+module.exports = {
+  async up(queryInterface, Sequelize) {
+    await queryInterface.createTable('transactions', {
+      id: {
+        allowNull: false,
+        autoIncrement: true,
+        primaryKey: true,
+        type: Sequelize.INTEGER
+      },
+      userId: {
+        type: Sequelize.INTEGER
+      },
+      botId: {
+        type: Sequelize.INTEGER
+      },
+      amount: {
+        type: Sequelize.STRING
+      },
+      fee: {
+        type: Sequelize.STRING
+      },
+      type: {
+        type: Sequelize.STRING
+      },
+      hash: {
+        type: Sequelize.STRING
+      },
+      createdAt: {
+        type: Sequelize.DATE
+      },
+      updatedAt: {
+        allowNull: false,
+        type: Sequelize.DATE
+      }
+    });
+  },
+  async down(queryInterface, Sequelize) {
+    await queryInterface.dropTable('transactions');
+  }
+};
+// File: validations/auth.validation.js
+const Joi = require('joi');
+const { password } = require('./custom.validation');
+
+const register = {
+  body: Joi.object().keys({
+    email: Joi.string().required().email(),
+    password: Joi.string().required().custom(password),
+    address: Joi.string().required(),
+    firstname: Joi.string().required(),
+    lastname: Joi.string().required(),
+    username: Joi.string().required(),
+    role: Joi.string().required().valid('user', 'admin'),
+  }),
+};
+
+const registerWallet = {
+  body: Joi.object().keys({
+    address: Joi.string().required(),
+    role: Joi.string().required().valid('user', 'admin'),
+  }),
+};
+
+const login = {
+  body: Joi.object().keys({
+    address: Joi.string().required(),
+    email: Joi.string().required(),
+    password: Joi.string().required(),
+  }),
+};
+
+const loginWallet = {
+  body: Joi.object().keys({
+    address: Joi.string().required(),
+  }),
+};
+
+const logout = {
+  body: Joi.object().keys({
+    refreshToken: Joi.string().required(),
+  }),
+};
+
+const refreshTokens = {
+  body: Joi.object().keys({
+    refreshToken: Joi.string().required(),
+  }),
+};
+
+const forgotPassword = {
+  body: Joi.object().keys({
+    email: Joi.string().email().required(),
+  }),
+};
+
+const resetPassword = {
+  query: Joi.object().keys({
+    token: Joi.string().required(),
+  }),
+  body: Joi.object().keys({
+    password: Joi.string().required().custom(password),
+  }),
+};
+
+const verifyEmail = {
+  query: Joi.object().keys({
+    token: Joi.string().required(),
+  }),
+};
+
+const verifySMS = {
+  query: Joi.object().keys({
+    token: Joi.string().required(),
+  }),
+};
+
+module.exports = {
+  register,
+  login,
+  logout,
+  refreshTokens,
+  forgotPassword,
+  resetPassword,
+  verifyEmail,
+  registerWallet,
+  loginWallet,
+  verifySMS
+};
+
+// File: validations/custom.validation.js
+const objectId = (value, helpers) => {
+  if (!value.match(/^[0-9a-fA-F]{24}$/)) {
+    return helpers.message('"{{#label}}" must be a valid mongo id');
+  }
+  return value;
+};
+
+const password = (value, helpers) => {
+  if (value.length < 8) {
+    return helpers.message('password must be at least 8 characters');
+  }
+  if (!value.match(/\d/) || !value.match(/[a-zA-Z]/)) {
+    return helpers.message('password must contain at least 1 letter and 1 number');
+  }
+  return value;
+};
+
+module.exports = {
+  objectId,
+  password,
+};
+
+// File: validations/index.js
+module.exports.authValidation = require('./auth.validation');
+module.exports.userValidation = require('./user.validation');
+
+// File: validations/user.validation.js
+const Joi = require('joi');
+const { password, objectId } = require('./custom.validation');
+
+const createUser = {
+  body: Joi.object().keys({
+    email: Joi.string().required().email(),
+    password: Joi.string().required().custom(password),
+    firstname: Joi.string().required(),
+    lastname: Joi.string().required(),
+    role: Joi.string().required().valid('user', 'admin'),
+  }),
+};
+
+const getUsers = {
+  query: Joi.object().keys({
+    firstname: Joi.string().required(),
+    lastname: Joi.string().required(),
+    role: Joi.string(),
+    sortBy: Joi.string(),
+    limit: Joi.number().integer(),
+    page: Joi.number().integer(),
+  }),
+};
+
+const getUser = {
+  params: Joi.object().keys({
+    id: Joi.string().custom(objectId),
+  }),
+};
+
+const updateUser = {
+  params: Joi.object().keys({
+    id: Joi.required().custom(objectId),
+  }),
+  body: Joi.object()
+    .keys({
+      email: Joi.string().email(),
+      password: Joi.string().custom(password),
+      firstname: Joi.string(),
+      lastname: Joi.string(),
+    })
+    .min(1),
+};
+
+const deleteUser = {
+  params: Joi.object().keys({
+    id: Joi.string().custom(objectId),
+  }),
+};
+
+module.exports = {
+  createUser,
+  getUsers,
+  getUser,
+  updateUser,
+  deleteUser,
+};
+
